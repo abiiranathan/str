@@ -52,7 +52,7 @@ A single header-only C library for manipulating strings in C.
 #include "str.h"
 
 int main() {
-    str_t *s = str_new(16);
+    str *s = str_new(16);
     str_append(s, "Hello, ");
     str_append(s, "world!");
     printf("%s\n", str_data(s));
