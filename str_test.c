@@ -212,6 +212,34 @@ void test_reverse() {
   printf("test_reverse passed\n");
 }
 
+void test_format() {
+  str* s = str_format("Hello, %s!", "World");
+  ASSERT(strcmp(str_cstr(s), "Hello, World!") == 0, "str_format failed");
+  str_free(s);
+
+  s = str_format("The answer is %d.", 42);
+  ASSERT(strcmp(str_cstr(s), "The answer is 42.") == 0, "str_format failed");
+  str_free(s);
+
+  // more complex format
+  s = str_format("The answer is %d, and the value is %f, and the string is %s.", 42, 3.14, "Hello");
+  ASSERT(strcmp(str_cstr(s),
+                "The answer is 42, and the value is 3.140000, and the string is Hello.") == 0,
+         "str_format failed");
+
+  str_free(s);
+
+  s = str_from("The quick brown fox ");
+  ASSERT(s != NULL, "str_from failed");
+  bool ok = str_append_fmt(&s, "%s.", "jumps over the lazy dog");
+  ASSERT(ok, "str_append_fmt failed");
+  ASSERT(strcmp(str_cstr(s), "The quick brown fox jumps over the lazy dog.") == 0,
+         "str_append_fmt failed");
+  str_free(s);
+
+  printf("test_format passed\n");
+}
+
 int main() {
   test_create_and_basic_ops();
   test_manipulations();
@@ -222,6 +250,7 @@ int main() {
   test_substring_and_replace();
   test_split_and_join();
   test_reverse();
+  test_format();
 
   printf("All tests passed!\n");
   return 0;

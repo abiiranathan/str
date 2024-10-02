@@ -19,10 +19,13 @@ typedef struct {
 // ========== Creation and destruction ==========
 
 // Create a new empty string with the given capacity.
-str* str_new(size_t capacity);
+__attribute__((warn_unused_result)) str* str_new(size_t capacity);
 
 // Create a new string from a C string.
-str* str_from(const char* cstr);
+__attribute__((warn_unused_result)) str* str_from(const char* cstr);
+
+// Allocate and create a formatted string.
+__attribute__((format(printf, 1, 2))) str* str_format(const char* format, ...);
 
 // Free the memory used by a string.
 void str_free(str* s);
@@ -30,21 +33,24 @@ void str_free(str* s);
 // ========== Information ==========
 
 // Get the length of the string.
-size_t str_len(const str* s);
+inline size_t str_len(const str* s);
 
 // Get the capacity of the string.
-size_t str_capacity(const str* s);
+inline size_t str_capacity(const str* s);
 
 // Check if the string is empty.
-bool str_empty(const str* s);
+inline bool str_empty(const str* s);
 
 // Ensure that the string has at least the given capacity.
-bool str_ensure_capacity(str** s, size_t capacity);
+inline bool str_ensure_capacity(str** s, size_t capacity);
 
 // ============ Modification ============
 
 // Append a C string to the end of the string.
 bool str_append(str** s, const char* append);
+
+// Append a formatted string to the end of the string.
+bool str_append_fmt(str** s, const char* format, ...);
 
 // Append a character to the end of the string.
 bool str_append_char(str** s, char c);
@@ -64,7 +70,7 @@ bool str_remove(str** s, size_t index, size_t count);
 size_t str_remove_all(str** s, const char* substr);
 
 // Clear the contents of the string.
-void str_clear(str* s);
+inline void str_clear(str* s);
 
 // Resize the string to the given length.
 bool str_resize(str** s, size_t new_length);
@@ -72,27 +78,27 @@ bool str_resize(str** s, size_t new_length);
 // ============ Access ============
 
 // Get the character at the given index in the string.
-char str_at(const str* s, size_t index);
+inline char str_at(const str* s, size_t index);
 
 // Get a pointer to the internal data of the string.
-char* str_data(str* s);
+inline char* str_data(str* s);
 
 // Get a pointer to the internal data of the string (const version).
-const char* str_cstr(const str* s);
+inline const char* str_cstr(const str* s);
 
 // =========== Comparison and search ==================
 
 // Compare two strings lexicographically.
-int str_compare(const str* s1, const str* s2);
+inline int str_compare(const str* s1, const str* s2);
 
 // Check if two strings are equal.
-bool str_equals(const str* s1, const str* s2);
+inline bool str_equals(const str* s1, const str* s2);
 
 // Check if the string starts with the given prefix.
-bool str_starts_with(const str* s, const char* prefix);
+inline bool str_starts_with(const str* s, const char* prefix);
 
 // Check if the string ends with the given suffix.
-bool str_ends_with(const str* s, const char* suffix);
+inline bool str_ends_with(const str* s, const char* suffix);
 
 // Find the first occurrence of a substring in the string.
 // Returns the index of the first character of the substring or STR_NPOS (-1) if not found.
@@ -158,6 +164,8 @@ void str_reverse_in_place(str* s);
 
 // str.c
 #include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -193,6 +201,42 @@ str* str_from(const char* cstr) {
     s->length = len;
   }
   return s;
+}
+
+str* str_format(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+
+  // Get the required size for the formatted string
+  va_list args_copy;
+  va_copy(args_copy, args);
+  int size = vsnprintf(NULL, 0, format, args_copy);
+  va_end(args_copy);
+
+  if (size < 0) {
+    va_end(args);
+    return NULL;
+  }
+
+  str* str = str_new(size + 1);
+  if (!str) {
+    va_end(args);
+    return NULL;
+  }
+
+  // Append the formatted string
+  int written = vsnprintf(str->data, str->capacity, format, args);
+  va_end(args);
+
+  if (written < 0 || written >= str->capacity) {
+    // Handle error or truncation
+    str->length = str->capacity - 1;
+    str->data[str->length] = '\0';
+  } else {
+    str->length = written;
+  }
+
+  return str;
 }
 
 void str_free(str* s) {
@@ -239,6 +283,37 @@ bool str_append(str** s, const char* append) {
   // Append the string and null-terminator
   memcpy((*s)->data + (*s)->length, append, append_len + 1);
   (*s)->length += append_len;
+  return true;
+}
+
+bool str_append_fmt(str** s, const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+
+  // Get the required size for the formatted string
+  va_list args_copy;
+  va_copy(args_copy, args);
+  int size = vsnprintf(NULL, 0, format, args_copy);
+  va_end(args_copy);
+
+  if (size < 0)
+    return false;
+
+  if (!str_ensure_capacity(s, (*s)->length + size + 1))
+    return false;
+
+  // Append the formatted string
+  int written = vsnprintf((*s)->data + (*s)->length, size + 1, format, args);
+  va_end(args);
+
+  if (written < 0 || written >= size) {
+    // Handle error or truncation
+    (*s)->length += size;
+    (*s)->data[(*s)->length] = '\0';
+  } else {
+    (*s)->length += written;
+  }
+
   return true;
 }
 
