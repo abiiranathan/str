@@ -1,0 +1,16 @@
+Language: Cpp
+
+BasedOnStyle: Google
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+SortIncludes: CaseInsensitive
+SortUsingDeclarations: true
+
+PackConstructorInitializers: Never
+BreakConstructorInitializersBeforeComma: true
